@@ -9,10 +9,29 @@ body {
   text-align: center;
   margin-top: 50px;
 }
+
+#instruction {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+#guide {
+  margin-top: 15px;
+  font-size: 32px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+#word.start {
+  color: black;
+  text-decoration: underline;
+}
+
 #word {
   font-size: 64px;
   margin: 40px;
 }
+
 button {
   font-size: 18px;
   margin: 5px;
@@ -26,53 +45,65 @@ button {
   display: inline-block;
   width: 80px;
   height: 80px;
-  line-height: 80px;
   margin: 10px;
-  font-size: 40px;
-  font-weight: bold;
+  text-align: center;
   border: 3px solid #333;
   border-radius: 10px;
+  line-height: 80px;
+  font-weight: bold;
+  font-size: 32px;
 }
 </style>
 </head>
+
 <body>
 
 <h1>Stroopテスト</h1>
-<p>「文字ではなく色」をキーで選んでください</p>
+<p id="instruction">色を回答！</p>
 
 <div>
-  <div id="word">スタートを押してください</div>
+  <div id="word" class="start">スタートを押してください</div>
+
+  <div id="guide">
+    Fキー：赤　/　Gキー：青　/　Jキー：緑　/　Kキー：黄
+  </div>
+
   <div style="margin-top: 15px;">
     <button id="startBtn">スタート</button>
   </div>
 </div>
 
+<!-- ✅ 表示のみ -->
 <div id="keymap">
-  <div class="keybox" style="color:red;">D</div>
-  <div class="keybox" style="color:blue;">F</div>
-  <div class="keybox" style="color:green;">J</div>
-  <div class="keybox" style="color:gold;">K</div>
+  <div class="keybox">赤</div>
+  <div class="keybox">青</div>
+  <div class="keybox">緑</div>
+  <div class="keybox">黄</div>
 </div>
 
 <script>
 const texts = ["赤","青","緑","黄"];
 const colors = ["red","blue","green","gold"];
+
+// ✅ FGJK対応
 const keyMap = {
-  "d": "red",
-  "f": "blue",
+  "f": "red",
+  "g": "blue",
   "j": "green",
-  "k": "gold"  // ✅ 修正済み（重要）
+  "k": "gold"
 };
 
 let current;
 let startTime;
 let isRunning = false;
 let canRespond = false;
+let answered = false;
 
 let trialCount = 0;
 let csvLog = [];
 
-const timeLimit = 600000;
+const timeLimit = 30000;
+let stimulusTimer;
 
 // ✅ スタート
 document.getElementById("startBtn").addEventListener("click", () => {
@@ -81,18 +112,19 @@ document.getElementById("startBtn").addEventListener("click", () => {
     document.documentElement.requestFullscreen();
   }
 
+  document.getElementById("word").classList.remove("start");
+  document.getElementById("guide").style.display = "none";
+
   trialCount = 0;
   csvLog = [];
   isRunning = true;
 
-  showFixation(); // ✅ ✖から開始
+  showFixation();
 
-  setTimeout(() => {
-    endTest();
-  }, timeLimit);
+  setTimeout(endTest, timeLimit);
 });
 
-// ✅ 注視点（500ms）
+// ✅ ✖（500ms固定）
 function showFixation() {
   if (!isRunning) return;
 
@@ -102,38 +134,28 @@ function showFixation() {
 
   canRespond = false;
 
-  setTimeout(() => {
-    showStimulus();
-  }, 500);
+  setTimeout(showStimulus, 500);
 }
 
-// ✅ 刺激提示（2000ms）
+// ✅ 刺激（2000ms固定）
 function showStimulus() {
   if (!isRunning) return;
 
   const rand = Math.random();
-  let condition;
-
-  if (rand < 0.25) {
-    condition = 1;
-  } else if (rand < 0.75) {
-    condition = 2;
-  } else {
-    condition = 3;
-  }
+  let condition = rand < 0.25 ? 1 : rand < 0.75 ? 2 : 3;
 
   let text, color;
 
   if (condition === 1) {
-    let i = Math.floor(Math.random() * texts.length);
+    let i = Math.floor(Math.random() * 4);
     text = texts[i];
     color = colors[i];
 
   } else if (condition === 2) {
-    let i = Math.floor(Math.random() * texts.length);
+    let i = Math.floor(Math.random() * 4);
     let j;
     do {
-      j = Math.floor(Math.random() * colors.length);
+      j = Math.floor(Math.random() * 4);
     } while (j === i);
 
     text = texts[i];
@@ -141,7 +163,7 @@ function showStimulus() {
 
   } else {
     text = "●";
-    color = colors[Math.floor(Math.random() * colors.length)];
+    color = colors[Math.floor(Math.random() * 4)];
   }
 
   current = { text, color, condition };
@@ -152,18 +174,15 @@ function showStimulus() {
 
   startTime = performance.now();
   canRespond = true;
+  answered = false;
 
-  // ✅ 2000ms後に自動で次の✖へ
-  setTimeout(() => {
+  // ✅ 必ず2000ms待つ
+  stimulusTimer = setTimeout(() => {
 
-    // 無反応でも記録
-    trialCount++;
-    csvLog.push([
-      trialCount,
-      current.condition,
-      "",
-      0
-    ]);
+    if (!answered) {
+      trialCount++;
+      csvLog.push([trialCount, current.condition, "", 0]);
+    }
 
     showFixation();
 
@@ -172,30 +191,27 @@ function showStimulus() {
 
 // ✅ キー入力
 document.addEventListener("keydown", (e) => {
+
+  if (!isRunning || !canRespond || answered) return;
+
   const key = e.key.toLowerCase();
-  if (!keyMap[key]) return;
+  if (!(key in keyMap)) return;
+
   handleAnswer(keyMap[key]);
 });
 
-// ✅ 回答処理
+// ✅ 回答処理（時間は止めない！）
 function handleAnswer(ans) {
-  if (!isRunning || !canRespond) return;
+
+  answered = true;
 
   const rt = Math.round(performance.now() - startTime);
-  const correct = (ans === current.color) ? 1 : 0;
+  const correct = ans === current.color ? 1 : 0;
 
   trialCount++;
-
-  csvLog.push([
-    trialCount,
-    current.condition,
-    rt,
-    correct
-  ]);
+  csvLog.push([trialCount, current.condition, rt, correct]);
 
   canRespond = false;
-
-  showFixation(); // ✅ 回答後すぐ✖へ
 }
 
 // ✅ 終了
@@ -207,9 +223,7 @@ function endTest() {
   wordDiv.style.color = "black";
 
   let csv = "試行回数,条件,反応時間(ms),正誤\n";
-  csvLog.forEach(row => {
-    csv += row.join(",") + "\n";
-  });
+  csvLog.forEach(row => csv += row.join(",") + "\n");
 
   const now = new Date();
   const fileName =
@@ -219,8 +233,7 @@ function endTest() {
     String(now.getHours()).padStart(2,"0") +
     String(now.getMinutes()).padStart(2,"0");
 
-  const bom = "\uFEFF";
-  const blob = new Blob([bom + csv], {type:"text/csv"});
+  const blob = new Blob(["\uFEFF" + csv], {type:"text/csv"});
 
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
