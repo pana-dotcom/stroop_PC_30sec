@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Stroop test</title>
+
 <style>
 body {
   font-family: sans-serif;
@@ -50,7 +51,6 @@ button {
   border: 3px solid #333;
   border-radius: 10px;
   line-height: 80px;
-  font-weight: bold;
   font-size: 32px;
 }
 </style>
@@ -73,7 +73,6 @@ button {
   </div>
 </div>
 
-<!-- ✅ 表示のみ -->
 <div id="keymap">
   <div class="keybox">赤</div>
   <div class="keybox">青</div>
@@ -85,7 +84,6 @@ button {
 const texts = ["赤","青","緑","黄"];
 const colors = ["red","blue","green","gold"];
 
-// ✅ FGJK対応
 const keyMap = {
   "f": "red",
   "g": "blue",
@@ -108,9 +106,7 @@ let stimulusTimer;
 // ✅ スタート
 document.getElementById("startBtn").addEventListener("click", () => {
 
-  if (document.documentElement.requestFullscreen) {
-    document.documentElement.requestFullscreen();
-  }
+  // ✅ フルスクリーン削除済み
 
   document.getElementById("word").classList.remove("start");
   document.getElementById("guide").style.display = "none";
@@ -124,7 +120,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   setTimeout(endTest, timeLimit);
 });
 
-// ✅ ✖（500ms固定）
+// ✅ 注視点
 function showFixation() {
   if (!isRunning) return;
 
@@ -137,7 +133,7 @@ function showFixation() {
   setTimeout(showStimulus, 500);
 }
 
-// ✅ 刺激（2000ms固定）
+// ✅ 刺激
 function showStimulus() {
   if (!isRunning) return;
 
@@ -169,16 +165,17 @@ function showStimulus() {
   current = { text, color, condition };
 
   const wordDiv = document.getElementById("word");
-  wordDiv.textContent = text;
-  wordDiv.style.color = color;
 
-  startTime = performance.now();
-  canRespond = true;
-  answered = false;
+  requestAnimationFrame(() => {
+    wordDiv.textContent = text;
+    wordDiv.style.color = color;
 
-  // ✅ 必ず2000ms待つ
+    startTime = performance.now();
+    canRespond = true;
+    answered = false;
+  });
+
   stimulusTimer = setTimeout(() => {
-
     if (!answered) {
       trialCount++;
       csvLog.push([trialCount, current.condition, "", 0]);
@@ -191,7 +188,6 @@ function showStimulus() {
 
 // ✅ キー入力
 document.addEventListener("keydown", (e) => {
-
   if (!isRunning || !canRespond || answered) return;
 
   const key = e.key.toLowerCase();
@@ -200,7 +196,7 @@ document.addEventListener("keydown", (e) => {
   handleAnswer(keyMap[key]);
 });
 
-// ✅ 回答処理（時間は止めない！）
+// ✅ 回答
 function handleAnswer(ans) {
 
   answered = true;
