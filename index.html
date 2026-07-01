@@ -40,18 +40,31 @@ button {
 
 #keymap {
   margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arrow-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .keybox {
-  display: inline-block;
-  width: 80px;
-  height: 80px;
-  margin: 10px;
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 90px;
+  height: 90px;
+  margin: 5px;
+
   border: 3px solid #333;
   border-radius: 10px;
-  line-height: 80px;
-  font-size: 32px;
+
+  font-size: 30px;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -65,7 +78,7 @@ button {
   <div id="word" class="start">スタートを押してください</div>
 
   <div id="guide">
-    Fキー：赤　/　Gキー：青　/　Jキー：緑　/　Kキー：黄
+    ↑：赤　/　←：青　/　→：緑　/　↓：黄
   </div>
 
   <div style="margin-top: 15px;">
@@ -74,10 +87,17 @@ button {
 </div>
 
 <div id="keymap">
-  <div class="keybox">赤</div>
-  <div class="keybox">青</div>
-  <div class="keybox">緑</div>
-  <div class="keybox">黄</div>
+
+  <div class="arrow-row">
+    <div class="keybox">赤</div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="keybox">青</div>
+    <div class="keybox">黄</div>
+    <div class="keybox">緑</div>
+  </div>
+
 </div>
 
 <script>
@@ -85,10 +105,10 @@ const texts = ["赤","青","緑","黄"];
 const colors = ["red","blue","green","gold"];
 
 const keyMap = {
-  "f": "red",
-  "g": "blue",
-  "j": "green",
-  "k": "gold"
+  "arrowup": "red",
+  "arrowleft": "blue",
+  "arrowright": "green",
+  "arrowdown": "gold"
 };
 
 let current;
@@ -105,8 +125,6 @@ let stimulusTimer;
 
 // ✅ スタート
 document.getElementById("startBtn").addEventListener("click", () => {
-
-  // ✅ フルスクリーン削除済み
 
   document.getElementById("word").classList.remove("start");
   document.getElementById("guide").style.display = "none";
@@ -143,13 +161,17 @@ function showStimulus() {
   let text, color;
 
   if (condition === 1) {
+
     let i = Math.floor(Math.random() * 4);
+
     text = texts[i];
     color = colors[i];
 
   } else if (condition === 2) {
+
     let i = Math.floor(Math.random() * 4);
     let j;
+
     do {
       j = Math.floor(Math.random() * 4);
     } while (j === i);
@@ -158,8 +180,10 @@ function showStimulus() {
     color = colors[j];
 
   } else {
+
     text = "●";
     color = colors[Math.floor(Math.random() * 4)];
+
   }
 
   current = { text, color, condition };
@@ -167,18 +191,28 @@ function showStimulus() {
   const wordDiv = document.getElementById("word");
 
   requestAnimationFrame(() => {
+
     wordDiv.textContent = text;
     wordDiv.style.color = color;
 
     startTime = performance.now();
     canRespond = true;
     answered = false;
+
   });
 
   stimulusTimer = setTimeout(() => {
+
     if (!answered) {
+
       trialCount++;
-      csvLog.push([trialCount, current.condition, "", 0]);
+
+      csvLog.push([
+        trialCount,
+        current.condition,
+        "",
+        0
+      ]);
     }
 
     showFixation();
@@ -188,12 +222,15 @@ function showStimulus() {
 
 // ✅ キー入力
 document.addEventListener("keydown", (e) => {
+
   if (!isRunning || !canRespond || answered) return;
 
   const key = e.key.toLowerCase();
+
   if (!(key in keyMap)) return;
 
   handleAnswer(keyMap[key]);
+
 });
 
 // ✅ 回答
@@ -201,27 +238,45 @@ function handleAnswer(ans) {
 
   answered = true;
 
-  const rt = Math.round(performance.now() - startTime);
-  const correct = ans === current.color ? 1 : 0;
+  const rt = Math.round(
+    performance.now() - startTime
+  );
+
+  const correct =
+    ans === current.color ? 1 : 0;
 
   trialCount++;
-  csvLog.push([trialCount, current.condition, rt, correct]);
+
+  csvLog.push([
+    trialCount,
+    current.condition,
+    rt,
+    correct
+  ]);
 
   canRespond = false;
 }
 
 // ✅ 終了
 function endTest() {
+
   isRunning = false;
 
-  const wordDiv = document.getElementById("word");
+  const wordDiv =
+    document.getElementById("word");
+
   wordDiv.textContent = "終了！";
   wordDiv.style.color = "black";
 
-  let csv = "試行回数,条件,反応時間(ms),正誤\n";
-  csvLog.forEach(row => csv += row.join(",") + "\n");
+  let csv =
+    "試行回数,条件,反応時間(ms),正誤\n";
+
+  csvLog.forEach(row =>
+    csv += row.join(",") + "\n"
+  );
 
   const now = new Date();
+
   const fileName =
     now.getFullYear() +
     String(now.getMonth()+1).padStart(2,"0") +
@@ -229,12 +284,22 @@ function endTest() {
     String(now.getHours()).padStart(2,"0") +
     String(now.getMinutes()).padStart(2,"0");
 
-  const blob = new Blob(["\uFEFF" + csv], {type:"text/csv"});
+  const blob = new Blob(
+    ["\uFEFF" + csv],
+    { type:"text/csv" }
+  );
 
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "stroop_" + fileName + ".csv";
+  const link =
+    document.createElement("a");
+
+  link.href =
+    URL.createObjectURL(blob);
+
+  link.download =
+    "stroop_" + fileName + ".csv";
+
   link.click();
+
 }
 </script>
 
