@@ -129,6 +129,9 @@ document.getElementById("startBtn").addEventListener("click", () => {
   document.getElementById("word").classList.remove("start");
   document.getElementById("guide").style.display = "none";
 
+  // スタート後にボタンを消す
+  document.getElementById("startBtn").style.display = "none";
+
   trialCount = 0;
   csvLog = [];
   isRunning = true;
